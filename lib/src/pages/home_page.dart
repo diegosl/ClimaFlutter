@@ -1,89 +1,105 @@
+import 'package:climaapp/src/widgets/custom_card_clima.dart';
 import 'package:flutter/material.dart';
+import 'package:shimmer/shimmer.dart';
+import 'package:weather/weather.dart';
 
-class HomePage extends StatelessWidget {
+enum AppState { NOT_DOWNLOADED, DOWNLOADING, FINISHED_DOWNLOADING }
+
+class HomePage extends StatefulWidget {
+  @override
+  _HomePageState createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  static const String API_KEY = '41176dfd0287c2f74238bb8996f5c104';
+  WeatherFactory ws;
+  Weather data;
+  AppState _state = AppState.DOWNLOADING;
+
+  @override
+  void initState() {
+    super.initState();
+    ws = WeatherFactory(API_KEY, language: Language.SPANISH);
+    queryWeather('Cordoba');
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
       child: Scaffold(
-        appBar: AppBar(),
-        body: Column(
-          children: [_TarjetaClima()],
-        ),
+        appBar: AppBar(backgroundColor: Colors.blue[800]),
+        body: _resultView(),
         floatingActionButton: FloatingActionButton(
-            backgroundColor: Colors.orange,
+            backgroundColor: Colors.blue[800],
             child: Icon(Icons.add, color: Colors.white),
-            onPressed: () {}),
+            onPressed: () => queryWeather('Cordoba')),
         drawer: Drawer(),
       ),
     );
   }
-}
 
-class _TarjetaClima extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(10.0),
-      child: Container(
-        width: double.infinity,
-        height: 250,
-        decoration: BoxDecoration(
-            gradient: LinearGradient(
-                begin: Alignment.topRight,
-                end: Alignment.bottomLeft,
-                colors: [Colors.blue[300], Colors.blue[600]]),
-            borderRadius: BorderRadius.circular(15)),
+  Widget _resultView() {
+    if (_state == AppState.FINISHED_DOWNLOADING) {
+      return contentFinishedDownload();
+    } else if (_state == AppState.DOWNLOADING) {
+      return contentDownloading();
+    } else
+      return contentNotDownloaded();
+  }
+
+  Widget contentDownloading() {
+    return Shimmer.fromColors(
+        period: Duration(milliseconds: 300),
         child: Padding(
-          padding: const EdgeInsets.all(10.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.room, color: Colors.white, size: 14),
-              Text('Villa Giardino, Córdoba Argentina',
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold)),
-              SizedBox(height: 20),
-              Icon(Icons.brightness_low, color: Colors.white, size: 60),
-              SizedBox(height: 10),
-              Text('Soleado',
-                  style: TextStyle(color: Colors.white, fontSize: 8)),
-              SizedBox(height: 20),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text('15°',
-                      style: TextStyle(
-                          color: Colors.white.withOpacity(0.5), fontSize: 25)),
-                  SizedBox(width: 10),
-                  Text('27°',
-                      style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 40,
-                          fontWeight: FontWeight.bold)),
-                  SizedBox(width: 10),
-                  Text('30°',
-                      style: TextStyle(
-                          color: Colors.white.withOpacity(0.5), fontSize: 25)),
-                ],
-              ),
-              SizedBox(height: 20),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  Icon(Icons.schedule, color: Colors.white, size: 12),
-                  Text('Lunes 3 de Agosto',
-                      style: TextStyle(color: Colors.white, fontSize: 10)),
-                ],
-              )
-            ],
+            padding: const EdgeInsets.all(10.0),
+            child: Container(
+              width: double.infinity,
+              height: 270,
+              decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(25)),
+            )),
+        baseColor: Colors.grey[300],
+        highlightColor: Colors.grey[50]);
+  }
+
+  Widget contentFinishedDownload() {
+    return TarjetaClima(
+      ciudad: data.areaName,
+      pais: data.country,
+      tempMin: data.tempMin.celsius.round().toString(),
+      tempActual: data.temperature.celsius.round().toString(),
+      tempMax: data.tempMax.celsius.round().toString(),
+      dia: data.date.day.toString(),
+      mes: data.date.month.toString(),
+      anio: data.date.year.toString(),
+      icono: data.weatherIcon,
+      weatherDescription: data.weatherDescription,
+    );
+  }
+
+  Widget contentNotDownloaded() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: <Widget>[
+          Text(
+            'No hay internet',
           ),
-        ),
+        ],
       ),
     );
+  }
+
+  void queryWeather(String ciudad) async {
+    setState(() {
+      _state = AppState.DOWNLOADING;
+    });
+
+    Weather weather = await ws.currentWeatherByCityName(ciudad);
+    setState(() {
+      data = weather;
+      _state = AppState.FINISHED_DOWNLOADING;
+    });
   }
 }

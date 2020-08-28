@@ -32,6 +32,9 @@ dependencies:
   # Weather
   weather: ^1.2.2
 
+  # Shimmer
+  shimmer: ^1.1.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
